@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import tcod
 
+from actions import EscapeAction, MovementAction
+from input_handlers import EventHandler
+
 
 def main() -> None:
     # --- config settings ---
@@ -12,6 +15,8 @@ def main() -> None:
         "data/img/dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
     
+    event_handler = EventHandler()
+
     # --- generate the console ---
     with tcod.context.new_terminal(
         screen_width, 
@@ -28,10 +33,21 @@ def main() -> None:
             
             # --- update the screen ---
             context.present(root_console)
-
+            root_console.clear()
+            
             # --- capture input ---
             for event in tcod.event.wait():
-                if event.type == "QUIT":
+                action = event_handler.dispatch(event)
+
+                # skip over the rest of this iteration if event not recognised
+                if action is None:
+                    continue
+
+                if isinstance(action, MovementAction):
+                    player_x += action.dx
+                    player_y += action.dy
+                
+                elif isinstance(action, EscapeAction):
                     raise SystemExit()
 
 
