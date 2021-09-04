@@ -1,4 +1,7 @@
 class Action:
+    '''
+    Generic action class
+    '''
     pass
 
 
