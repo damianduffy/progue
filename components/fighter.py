@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 class Fighter(BaseComponent):
     parent:Actor
 
-    def __init__(self, hp:int, defence:int, power:int):
+    def __init__(self, hp:int, base_defence: int, base_power: int):
         self.max_hp = hp
         self._hp = hp
-        self.defence = defence
-        self.power = power
+        self.base_defence = base_defence
+        self.base_power = base_power
 
     @property
     def hp(self) -> int:
@@ -29,6 +29,28 @@ class Fighter(BaseComponent):
         if self._hp == 0 and self.parent.ai:
             self.die()
     
+    @property
+    def defence(self) -> int:
+        return self.base_defence + self.defence_bonus
+
+    @property
+    def power(self) -> int:
+        return self.base_power + self.power_bonus
+
+    @property
+    def defence_bonus(self) -> int:
+        if self.parent.equipment:
+            return self.parent.equipment.defence_bonus
+        else:
+            return 0
+
+    @property
+    def power_bonus(self) -> int:
+        if self.parent.equipment:
+            return self.parent.equipment.power_bonus
+        else:
+            return 0
+
     def die(self) -> None:
         if self.engine.player is self.parent:
             death_message = "You died!"
@@ -47,6 +69,8 @@ class Fighter(BaseComponent):
         self.engine.message_log.add_message(
             death_message, death_message_color
         )
+
+        self.engine.player.level.add_xp(self.parent.level.xp_given)
 
     def heal(self, amount:int) -> int:
         if self.hp == self.max_hp:
