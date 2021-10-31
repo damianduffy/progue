@@ -7,7 +7,6 @@ import tcod
 import color
 import exceptions
 import input_handlers
-import setup_game
 
 
 def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
@@ -17,6 +16,18 @@ def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
     if isinstance(handler, input_handlers.EventHandler):
         handler.engine.save_as(filename)
         print("Game saved.")
+
+def toggle_fullscreen(context: tcod.context.Context) -> None:
+    """Toggle a context window between fullscreen and windowed modes."""
+    if not context.sdl_window_p:
+        return
+    fullscreen = tcod.lib.SDL_GetWindowFlags(context.sdl_window_p) & (
+        tcod.lib.SDL_WINDOW_FULLSCREEN | tcod.lib.SDL_WINDOW_FULLSCREEN_DESKTOP
+    )
+    tcod.lib.SDL_SetWindowFullscreen(
+        context.sdl_window_p,
+        0 if fullscreen else tcod.lib.SDL_WINDOW_FULLSCREEN_DESKTOP,
+    )
 
 def main() -> None:
     # --- config settings ---
@@ -28,7 +39,7 @@ def main() -> None:
     )
     
     # Setup the event handler (set to the main menu to start new game/load game/etc.).
-    handler: input_handlers.BaseEventHandler = setup_game.MainMenu()
+    handler: input_handlers.BaseEventHandler = input_handlers.MainMenu()
 
     # --- generate the console ---
     with tcod.context.new_terminal(
@@ -39,6 +50,10 @@ def main() -> None:
         vsync = True,
     ) as context:
         root_console = tcod.Console(screen_width, screen_height, order="F")
+        # FIXME - temporarily forcing to fullscreen while testing.
+        # toggle_fullscreen should probably live in engine.py
+        # Going fullscreen should be controled by a CLI flag and also in-game options menu
+        toggle_fullscreen(context)
         # --- main game loop ---
         try:
             while True:

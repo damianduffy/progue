@@ -3,8 +3,10 @@ from __future__ import annotations
 import os
 from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 from numpy import not_equal
+import traceback
 
 import tcod
+from tcod.context import new
 from tcod.event import Modifier
 
 import actions
@@ -575,21 +577,6 @@ class MainGameEventHandler(EventHandler):
         return action
 
 
-class GameOverEventHandler(EventHandler):
-    def on_quit(self) -> None:
-        """ Handle exiting out of a finished game. """
-        if os.path.exists("savegame.sav"):
-            os.remove("savegame.sav")           # Deletes the active save file.
-        raise exceptions.QuitWithoutSaving()    # Avoid saving a game where the player is dead.
-    
-    def ev_quit(self, event: tcod.event.Quit) -> None:
-        self.on_quit()
-
-    def ev_keydown(self, event:tcod.event.KeyDown) -> None:
-        if event.sym == tcod.event.K_ESCAPE:
-            self.on_quit()
-
-
 CURSOR_Y_KEYS = {
     tcod.event.K_UP: -1, 
     tcod.event.K_DOWN: 1, 
@@ -646,4 +633,115 @@ class HistoryViewer(EventHandler):
         else:
             # Any other key moves back to the main game state
             return MainGameEventHandler(self.engine)
+        return None
+
+
+# Moved import here to prevent circular import error.
+from setup_game import load_game, new_game
+
+
+class GameOverEventHandler(EventHandler):
+    def on_render(self, console: tcod.Console) -> None:
+        menu_width = 15
+        x = (console.width - menu_width) // 2
+        y = (console.height - 4) // 2
+
+        console.draw_frame(
+            x = x, 
+            y = y, 
+            width = menu_width, 
+            height = 4, 
+            title = "Game Over", 
+            clear = True, 
+            fg = (255, 255, 255), 
+            bg = (0, 0, 0), 
+        )
+        console.print(
+            x = x + 1, 
+            y = y + 1, 
+            string = "[R] Restart", 
+            fg = (255, 255, 255), 
+            bg = (0, 0, 0), 
+        )
+        console.print(
+            x = x + 1, 
+            y = y + 2, 
+            string = "[Q] Quit", 
+            fg = (255, 255, 255), 
+            bg = (0, 0, 0), 
+        )
+    
+    def on_quit(self) -> None:
+        """ Handle exiting out of a finished game. """
+        if os.path.exists("savegame.sav"):
+            os.remove("savegame.sav")           # Deletes the active save file.
+        raise exceptions.QuitWithoutSaving()    # Avoid saving a game where the player is dead.
+    
+    def ev_quit(self, event: tcod.event.Quit) -> None:
+        self.on_quit()
+
+    def ev_keydown(self, event:tcod.event.KeyDown) -> Optional[MainGameEventHandler]:
+        if event.sym == tcod.event.K_ESCAPE or event.sym == tcod.event.K_q:
+            self.on_quit()
+        elif event.sym == tcod.event.K_r:
+            # Restart game with newly generated dungeon.
+            return MainGameEventHandler(new_game())
+
+
+class MainMenu(BaseEventHandler):
+    """
+    Handle the main menu rendering and input.
+    """
+    # Load the background image for the menu and remove the alpha channel.
+    background_image = tcod.image.load("data/img/menu_background.png")[:, :, :3]
+
+    def on_render(self, console: tcod.Console) -> None:
+        """
+        Render the main menu on a background image.
+        """
+        console.draw_semigraphics(self.background_image, 0, 0)
+
+        console.print(
+            console.width // 2, 
+            console.height // 2 - 4, 
+            "My First Attempt at a Roguelike!", 
+            fg=color.menu_title, 
+            alignment=tcod.CENTER, 
+        )
+        console.print(
+            console.width // 2, 
+            console.height - 2, 
+            "By Damian Duffy", 
+            fg=color.menu_title, 
+            alignment=tcod.CENTER, 
+        )
+
+        menu_width = 24
+        for i, text in enumerate(
+            ["[N] Play a new game", "[C] Continue last game", "[Q] Quit"]
+        ):
+            console.print(
+                console.width // 2, 
+                console.height // 2 - 2 + i, 
+                text.ljust(menu_width), 
+                fg=color.menu_text, 
+                bg=color.black, 
+                alignment=tcod.CENTER, 
+                bg_blend=tcod.BKGND_ALPHA(64), 
+            )
+    
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[BaseEventHandler]:
+        if event.sym in (tcod.event.K_q, tcod.event.K_ESCAPE):
+            raise SystemExit()
+        elif event.sym == tcod.event.K_c:
+            try:
+                return MainGameEventHandler(load_game("savegame.sav"))
+            except FileNotFoundError:
+                return PopupMessage(self, "No saved game to load.")
+            except Exception as exc:
+                traceback.print_exc()  # Print to stderr.
+                return PopupMessage(self, f"Failed to load save:\n{exc}")
+        elif event.sym == tcod.event.K_n:
+            return MainGameEventHandler(new_game())
+
         return None

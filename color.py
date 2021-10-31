@@ -9,6 +9,7 @@ dark_grey = (0x3c, 0x3d, 0x3d)
 light_blue = (50, 50, 150)
 dark_blue = (0, 0, 100)
 red = (0xFF, 0x0, 0x0)
+purple = (0xBF, 0x40, 0xBF)
 
 # Message colors
 player_atk = (0xE0, 0xE0, 0xE0)
@@ -31,6 +32,11 @@ health_recovered = (0x0, 0xFF, 0x0)
 bar_text = white
 bar_filled = green
 bar_empty = dark_red
+
+# XP bar
+xp_bar_text = white
+xp_bar_filled = purple
+xp_bar_empty = light_grey
 
 # Main menu
 menu_title = (255, 255, 63)

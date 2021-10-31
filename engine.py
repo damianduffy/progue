@@ -60,10 +60,18 @@ class Engine:
             total_width=20
         )
 
+        # --- Display the player's XP progression ---
+        render_functions.render_xp_bar(
+            console=console, 
+            current_value=self.player.level.level_for_xp_bar, 
+            maximum_value=self.player.level.experience_to_next_level, 
+            total_width=20, 
+        )
+
         render_functions.render_dungeon_level(
             console=console,
             dungeon_level=self.game_world.current_floor,
-            location=(0, 47),
+            location=(0, 49),
         )
 
         render_functions.render_names_at_mouse_location(
